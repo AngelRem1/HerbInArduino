@@ -97,6 +97,13 @@ void loop() {
     delay(FADESPEED);
   }
 
+  if (request.indexOf("/off") != -1)  {
+    analogWrite(BLUEPIN, 0);
+    analogWrite(GREENPIN, 0);
+    analogWrite(REDPIN, 0);
+    delay(FADESPEED);
+  }
+
   // Return the response
   client.println("HTTP/1.1 200 OK");
   client.println("Content-Type: text/html");
@@ -110,6 +117,7 @@ void loop() {
   client.println("<a href=\"/red\"\"><button> turn lights red </button></a>");
   client.println("<a href=\"/blue\"\"><button>turn lights blue </button></a><br />");
   client.println("<a href=\"/green\"\"><button>turn lights green </button></a><br />");
+  client.println("<a href=\"/off\"\"><button>turn lights off </button></a><br />");
   client.println("</html>");
   delay(1);
   Serial.println("Client disonnected");
