@@ -1,126 +1,119 @@
 #include <ESP8266WiFi.h>
-#include <WiFiClient.h>
-#include <ESP8266WebServer.h>
-
-//Create a main page
-//#include "mainpage.h"
+//#include <WiFiClient.h>
+//#include <ESP8266WebServer.h>
 
 /* Network settings */
-const char* ssid = "Angel"; // SSID - your WiFi"s name 
-const char* password = "12345678"; // Password 
-const char* device_name = "led"; // you can access controller by http://led.local/
-
-
-//Change the IP address to reflect your Router subnet, and make sure that there is no devices in the same IP address.
-IPAddress ip(192,168,1,111);  // static IP adress of device 
-IPAddress gateway(192,168,1,1); // Gateway
-IPAddress subnet(255,255,255,0); // Network mask
+const char* ssid = "Angel"; // SSID - your WiFi"s name
+const char* password = "12345678"; // Password
 
 const int REDPIN = 0;  // D3 GPIO0
 const int GREENPIN = 2;  // D2 GPIO2
 const int BLUEPIN = 4;  // D4 GPIO4
 
-ESP8266WebServer server(80);
+WiFiServer server(80);
 
 #define FADESPEED 5     // make this higher to slow down
- 
+
 void setup() {
+  Serial.begin(115200);
+  delay(10);
+
   pinMode(REDPIN, OUTPUT);
   pinMode(GREENPIN, OUTPUT);
   pinMode(BLUEPIN, OUTPUT);
+
+  // Connect to WiFi network
+  Serial.println();
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("WiFi connected");
+
+  // Start the server
+  server.begin();
+  Serial.println("Server started");
+
+  // Print the IP address on serial monitor
+  Serial.print("Use this URL to connect: ");
+  Serial.print("http://");    //URL IP to be typed in mobile/desktop browser
+  Serial.print(WiFi.localIP());
+  Serial.println("/");
 }
-//
-//void setup(void) {
-// delay(1000);
-// /* Begin some (un)important things */
-//   Serial.begin(115200);
-//   WiFi.begin(ssid, password);
-//   WiFi.config(ip, gateway, subnet);
-//   Serial.println("");
-//
-////   stuff for the pins 
-//  pinMode(redLED, INPUT);
-//  pinMode(greenLED, INPUT);
-//  pinMode(blueLED, INPUT);
-//
-//  green();
-//    
-////   server.on("/", []() {
-////     server.send(200, "text/html", "<p> Does this work </p>");
-////     Serial.println("Loaded main page");
-////     Serial.print("Pressed: ");
-////     Serial.println("on");
-////   });
-//
-////Creating routes for turning on and off
-////   server.on("/red", []() {
-////     server.send(200, "text/html","<p> Does this work1 </p>");
-////     red();
-////     Serial.print("Pressed: ");
-////     Serial.println("red");
-////     delay(1000);
-////   });
-//
-////   server.on("/blue", []() {
-////     server.send(200, "text/html","<p> Does this work2 </p>");
-////     blue();
-////     Serial.print("Pressed: ");
-////     Serial.println("blue");
-////     delay(1000);
-////   });
-////   server.on("/green", []() {
-////     server.send(200, "text/html","<p> Does this work3 </p>");
-////     green();
-////     Serial.print("Pressed: ");
-////     Serial.println("green");
-////     delay(1000);
-////   });
-//
-//  
-//}
-//
-//void green() {
-//  digitalWrite(greenLED, HIGH);
-//}
-//
-//void red() {
-//  digitalWrite(redLED, HIGH);
-//}
-//
-//void blue() {
-//  digitalWrite(blueLED, HIGH);
-//}
+
 void loop() {
-  int r, g, b;
- 
-  // fade from blue to violet
-//  for (r = 0; r < 256; r++) { 
-//    analogWrite(REDPIN, r);
-//    delay(FADESPEED);
-//  } 
-  // fade from violet to red
-//  for (b = 255; b > 0; b--) { 
-//    analogWrite(BLUEPIN, b);
-//    delay(FADESPEED);
-//  } 
-  // fade from red to yellow
-  for (g = 0; g < 256; g++) { 
-    analogWrite(GREENPIN, g);
+  //  int r, g, b;
+  //
+  //  for (g = 0; g < 256; g++) {
+  //    analogWrite(GREENPIN, g);
+  //    delay(FADESPEED);
+  //  }
+  WiFiClient client = server.available();
+  if (!client) {
+    return;
+  }
+
+  // Wait until the client sends some data
+  Serial.println("new client");
+  while (!client.available()) {
+    delay(1);
+  }
+
+  // Read the first line of the request
+  String request = client.readStringUntil('\r');
+  Serial.println(request);
+  client.flush();
+
+  // Match the request
+
+
+  if (request.indexOf("/red") != -1)  {
+    analogWrite(REDPIN, 0);
+    analogWrite(BLUEPIN, 0);
+    analogWrite(GREENPIN, 255);
     delay(FADESPEED);
-  } 
-  // fade from yellow to green
-//  for (r = 255; r > 0; r--) { 
-//    analogWrite(REDPIN, r);
-//    delay(FADESPEED);
-//  } 
-  // fade from green to teal
-//  for (b = 0; b < 256; b++) { 
-//    analogWrite(BLUEPIN, b);
-//    delay(FADESPEED);
-//  } 
-  // fade from teal to blue
-//  for (g = 255; g > 0; g--) { 
-//    analogWrite(GREENPIN, g);
-//    delay(FADESPEED);
-//  } 
+
+  }
+
+  if (request.indexOf("/blue") != -1)  {
+
+    analogWrite(GREENPIN, 0);
+    analogWrite(REDPIN, 0);
+    analogWrite(BLUEPIN, 255);
+    delay(FADESPEED);
+  }
+
+  if (request.indexOf("/green") != -1)  {
+    analogWrite(BLUEPIN, 0);
+    analogWrite(GREENPIN, 0);
+    analogWrite(REDPIN, 255);
+    delay(FADESPEED);
+  }
+
+  // Return the response
+  client.println("HTTP/1.1 200 OK");
+  client.println("Content-Type: text/html");
+  client.println(""); //  do not forget this one
+  client.println("<!DOCTYPE HTML>");
+  client.println("<html>");
+  client.println("<h1 align=center>Lights controlled over WiFi</h1><br><br>");
+  client.print("Lights are changing= ");
+
+  client.println("<br><br>");
+  client.println("<a href=\"/red\"\"><button> turn lights red </button></a>");
+  client.println("<a href=\"/blue\"\"><button>turn lights blue </button></a><br />");
+  client.println("<a href=\"/green\"\"><button>turn lights green </button></a><br />");
+  client.println("</html>");
+  delay(1);
+  Serial.println("Client disonnected");
+  Serial.println("");
+
+
 }
