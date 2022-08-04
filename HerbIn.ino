@@ -6,23 +6,47 @@
 const char* ssid = "Angel"; // SSID - your WiFi"s name
 const char* password = "12345678"; // Password
 
+/* pins for the led */
 const int REDPIN = 0;  // D3 GPIO0
 const int GREENPIN = 2;  // D2 GPIO2
 const int BLUEPIN = 4;  // D4 GPIO4
 
+/* pins for the 2 channel relay using D5 and D6*/
+const int IN1 = 5;
+const int IN2 = 6;
+
+/* pins for analog signal moisture sensor */
+const int PIN1 = A0;   /* Will have to later set it up for the multiplexor */
+
+/* variable to store the value of the moisture sensor */
+float VALUE = 0;
+
 WiFiServer server(80);
 
-#define FADESPEED 5     // make this higher to slow down
+#define FADESPEED 5    /* increase to slow down */
 
 void setup() {
   Serial.begin(115200);
   delay(10);
 
+  /* setting ports input and out function for arduino (for pump and moisture sensor) */
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  
+  pinMode(PIN1, INPUT); /* for analog signal moisture sensor */
+    
+
+  /* setting port input and output function for arduino (for LED) */
   pinMode(REDPIN, OUTPUT);
   pinMode(GREENPIN, OUTPUT);
   pinMode(BLUEPIN, OUTPUT);
 
-  // Connect to WiFi network
+  /* test for the pump tmr*/
+  digitalWrite(IN1, HIGH);
+  delay(2000);
+  digitalWrite(IN2, LOW);
+
+  /* Connect to WiFi network */
   Serial.println();
   Serial.println();
   Serial.print("Connecting to ");
@@ -37,43 +61,64 @@ void setup() {
   Serial.println("");
   Serial.println("WiFi connected");
 
-  // Start the server
+  /* Start the server */
   server.begin();
   Serial.println("Server started");
 
-  // Print the IP address on serial monitor
+  /* Print the IP address on serial monitor */
   Serial.print("Use this URL to connect: ");
-  Serial.print("http://");    //URL IP to be typed in mobile/desktop browser
+  Serial.print("http://");    /* URL IP to be typed in mobile/desktop browser */
   Serial.print(WiFi.localIP());
   Serial.println("/");
+
+
+  
 }
 
 void loop() {
-  //  int r, g, b;
-  //
-  //  for (g = 0; g < 256; g++) {
-  //    analogWrite(GREENPIN, g);
-  //    delay(FADESPEED);
-  //  }
+
   WiFiClient client = server.available();
   if (!client) {
     return;
   }
 
-  // Wait until the client sends some data
+  /* Wait until the client sends some data */
   Serial.println("new client");
   while (!client.available()) {
     delay(1);
   }
 
-  // Read the first line of the request
+
+
+
+
+  /* Code for the moisture sensor */
+  Serial.print("Moisture Level:");
+  VALUE = analogRead(PIN1);
+  Serial.print(VALUE);
+
+  /* checking moisture levels to turn on the relay and pump */
+  if(VALUE > 550) /* 550 should be changed depending on the reccomended water level for the plant */
+  {
+    digitalWrite(IN1, LOW); 
+  } else
+  {
+     digitalWrite(IN1, HIGH);
+  }
+  Serial.println();
+  delay(1000);
+
+
+
+
+
+  /* Read the first line of the request */
   String request = client.readStringUntil('\r');
   Serial.println(request);
   client.flush();
 
-  // Match the request
 
-
+  /* Match the request */ 
   if (request.indexOf("/red") != -1)  {
     analogWrite(REDPIN, 0);
     analogWrite(BLUEPIN, 0);
@@ -104,10 +149,10 @@ void loop() {
     delay(FADESPEED);
   }
 
-  // Return the response
+  /* Return the response */ 
   client.println("HTTP/1.1 200 OK");
   client.println("Content-Type: text/html");
-  client.println(""); //  do not forget this one
+  client.println(""); /* do not forget this one */
   client.println("<!DOCTYPE HTML>");
   client.println("<html>");
   client.println("<h1 align=center>Lights controlled over WiFi</h1><br><br>");
