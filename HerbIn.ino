@@ -12,11 +12,11 @@ const int GREENPIN = 2;  // D2 GPIO2
 const int BLUEPIN = 4;  // D4 GPIO4
 
 /* pins for the 2 channel relay using D5 and D6*/
-const int IN1 = 5;
+const int IN1 = 12; //D6 GPIO14
 const int IN2 = 6;
 
 /* pins for analog signal moisture sensor */
-const int PIN1 = A0;   /* Will have to later set it up for the multiplexor */
+//const int PIN1 = A0;   /* Will have to later set it up for the multiplexor */
 
 /* variable to store the value of the moisture sensor */
 float VALUE = 0;
@@ -25,26 +25,35 @@ WiFiServer server(80);
 
 #define FADESPEED 5    /* increase to slow down */
 
+
+/* Functions to turn on/off pump */
+void turnOnPump() {
+  digitalWrite(IN1, LOW);
+  delay(3000);
+  turnOffPump();
+
+}
+
+void turnOffPump() {
+  digitalWrite(IN1, HIGH);
+}
+
 void setup() {
   Serial.begin(115200);
   delay(10);
 
-  /* setting ports input and out function for arduino (for pump and moisture sensor) */
-  pinMode(IN1, OUTPUT);
-  pinMode(IN2, OUTPUT);
-  
-  pinMode(PIN1, INPUT); /* for analog signal moisture sensor */
-    
 
   /* setting port input and output function for arduino (for LED) */
   pinMode(REDPIN, OUTPUT);
   pinMode(GREENPIN, OUTPUT);
   pinMode(BLUEPIN, OUTPUT);
 
-  /* test for the pump tmr*/
+  /* setting ports input and out function for arduino (for pump and moisture sensor) */
+  pinMode(IN1, OUTPUT);
+
+  /* Turning off the relay */
+  Serial.print("Turning off relay");
   digitalWrite(IN1, HIGH);
-  delay(2000);
-  digitalWrite(IN2, LOW);
 
   /* Connect to WiFi network */
   Serial.println();
@@ -71,8 +80,6 @@ void setup() {
   Serial.print(WiFi.localIP());
   Serial.println("/");
 
-
-  
 }
 
 void loop() {
@@ -88,37 +95,13 @@ void loop() {
     delay(1);
   }
 
-
-
-
-
-  /* Code for the moisture sensor */
-  Serial.print("Moisture Level:");
-  VALUE = analogRead(PIN1);
-  Serial.print(VALUE);
-
-  /* checking moisture levels to turn on the relay and pump */
-  if(VALUE > 550) /* 550 should be changed depending on the reccomended water level for the plant */
-  {
-    digitalWrite(IN1, LOW); 
-  } else
-  {
-     digitalWrite(IN1, HIGH);
-  }
-  Serial.println();
-  delay(1000);
-
-
-
-
-
   /* Read the first line of the request */
   String request = client.readStringUntil('\r');
   Serial.println(request);
   client.flush();
 
 
-  /* Match the request */ 
+  /* Match the request */
   if (request.indexOf("/red") != -1)  {
     analogWrite(REDPIN, 0);
     analogWrite(BLUEPIN, 0);
@@ -148,8 +131,12 @@ void loop() {
     analogWrite(REDPIN, 0);
     delay(FADESPEED);
   }
+  if (request.indexOf("/pumpOn") != -1)  {
+    turnOnPump();
+  }
 
-  /* Return the response */ 
+
+  /* Return the response */
   client.println("HTTP/1.1 200 OK");
   client.println("Content-Type: text/html");
   client.println(""); /* do not forget this one */
@@ -163,6 +150,7 @@ void loop() {
   client.println("<a href=\"/blue\"\"><button>turn lights blue </button></a><br />");
   client.println("<a href=\"/green\"\"><button>turn lights green </button></a><br />");
   client.println("<a href=\"/off\"\"><button>turn lights off </button></a><br />");
+  client.println("<a href=\"/pumpOn\"\"><button>turn on pump </button></a><br />");
   client.println("</html>");
   delay(1);
   Serial.println("Client disonnected");
