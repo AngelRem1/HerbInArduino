@@ -12,11 +12,11 @@ const int GREENPIN = 2;  // D2 GPIO2
 const int BLUEPIN = 4;  // D4 GPIO4
 
 /* pins for the 2 channel relay using D5 and D6*/
-const int IN1 = 12; //D6 GPIO14
+const int IN1 = 12; //D6 GPIO12
 const int IN2 = 6;
 
 /* pins for analog signal moisture sensor */
-//const int PIN1 = A0;   /* Will have to later set it up for the multiplexor */
+const int PIN1 = A0;   /* Will have to later set it up for the multiplexor */
 
 /* variable to store the value of the moisture sensor */
 float VALUE = 0;
@@ -49,10 +49,11 @@ void setup() {
   pinMode(BLUEPIN, OUTPUT);
 
   /* setting ports input and out function for arduino (for pump and moisture sensor) */
-  pinMode(IN1, OUTPUT);
+  pinMode(IN1, OUTPUT); //Pump
+  pinMode(PIN1, INPUT); //Moisture sensor
 
   /* Turning off the relay */
-  Serial.print("Turning off relay");
+  Serial.println("Turning off relay");
   digitalWrite(IN1, HIGH);
 
   /* Connect to WiFi network */
@@ -83,6 +84,7 @@ void setup() {
 }
 
 void loop() {
+  /* Displaying the moisture level */
 
   WiFiClient client = server.available();
   if (!client) {
@@ -134,6 +136,18 @@ void loop() {
   if (request.indexOf("/pumpOn") != -1)  {
     turnOnPump();
   }
+
+  if (request.indexOf("/checkMoisture") != -1)  {
+    Serial.println();
+    Serial.println();
+    Serial.println("Moisture level:");
+    VALUE = analogRead(PIN1);
+    Serial.println(VALUE);
+    client.println(VALUE);
+    Serial.println();
+  }
+
+
 
 
   /* Return the response */
