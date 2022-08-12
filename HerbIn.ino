@@ -7,16 +7,19 @@ const char* ssid = "Angel"; // SSID - your WiFi"s name
 const char* password = "12345678"; // Password
 
 /* pins for the led */
-const int REDPIN = 0;  // D3 GPIO0
-const int GREENPIN = 2;  // D2 GPIO2
+const int REDPIN = 2 ;  // D3 GPIO0
+const int GREENPIN = 0;  // D2 GPIO2
 const int BLUEPIN = 4;  // D4 GPIO4
 
 /* pins for the 2 channel relay using D5 and D6*/
 const int IN1 = 12; //D6 GPIO12
-const int IN2 = 6;
+const int IN2 = 13; //D7 GPIO13
 
-/* pins for analog signal moisture sensor */
-const int PIN1 = A0;   /* Will have to later set it up for the multiplexor */
+/* pins for analog signal for both moisture sensor */
+const int PIN1 = A0;
+
+/* for the multiplexor */
+const int MULTIPIN = 14; /* selector pin for the multiplexor */
 
 /* variable to store the value of the moisture sensor */
 float VALUE = 0;
@@ -27,15 +30,25 @@ WiFiServer server(80);
 
 
 /* Functions to turn on/off pump */
-void turnOnPump() {
+void turnOnPump1() {
   digitalWrite(IN1, LOW);
-  delay(3000);
-  turnOffPump();
+  delay(50);
+  turnOffPump1();
 
 }
 
-void turnOffPump() {
+void turnOnPump2() {
+  digitalWrite(IN2, LOW);
+  delay(50);
+  turnOffPump2();
+
+}
+
+void turnOffPump1() {
   digitalWrite(IN1, HIGH);
+}
+void turnOffPump2() {
+  digitalWrite(IN2, HIGH);
 }
 
 void setup() {
@@ -48,13 +61,20 @@ void setup() {
   pinMode(GREENPIN, OUTPUT);
   pinMode(BLUEPIN, OUTPUT);
 
+  analogWrite(REDPIN, 0);
+  analogWrite(GREENPIN, 0);
+  analogWrite(BLUEPIN, 0);
+
   /* setting ports input and out function for arduino (for pump and moisture sensor) */
-  pinMode(IN1, OUTPUT); //Pump
+  pinMode(IN1, OUTPUT); //Pump 1
+  pinMode(IN2, OUTPUT);  //Pump 2
+
   pinMode(PIN1, INPUT); //Moisture sensor
 
   /* Turning off the relay */
   Serial.println("Turning off relay");
   digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, HIGH);
 
   /* Connect to WiFi network */
   Serial.println();
@@ -133,19 +153,37 @@ void loop() {
     analogWrite(REDPIN, 0);
     delay(FADESPEED);
   }
-  if (request.indexOf("/pumpOn") != -1)  {
-    turnOnPump();
+
+  if (request.indexOf("/pumpOn1") != -1)  {
+    turnOnPump1();
   }
 
-  if (request.indexOf("/checkMoisture") != -1)  {
+  if (request.indexOf("/pumpOn2") != -1)  {
+    turnOnPump2();
+  }
+
+  if (request.indexOf("/checkMoisture1") != -1)  {
+
+    digitalWrite(MULTIPIN, HIGH);
     Serial.println();
     Serial.println();
-    Serial.println("Moisture level:");
+    Serial.println("Moisture level #1:");
     VALUE = analogRead(PIN1);
-    Serial.println(VALUE);
     client.println(VALUE);
+    Serial.println(VALUE);
     Serial.println();
   }
+  if (request.indexOf("/checkMoisture2") != -1)  {
+    digitalWrite(MULTIPIN, LOW);
+    Serial.println();
+    Serial.println();
+    Serial.println("Moisture level #2:");
+    VALUE = analogRead(PIN1);
+    client.println(VALUE);
+    Serial.println(VALUE);
+    Serial.println();
+  }
+
 
 
 
@@ -164,7 +202,7 @@ void loop() {
   client.println("<a href=\"/blue\"\"><button>turn lights blue </button></a><br />");
   client.println("<a href=\"/green\"\"><button>turn lights green </button></a><br />");
   client.println("<a href=\"/off\"\"><button>turn lights off </button></a><br />");
-  client.println("<a href=\"/pumpOn\"\"><button>turn on pump </button></a><br />");
+  client.println("<a href=\"/pumpOn1\"\"><button>turn on pump </button></a><br />");
   client.println("</html>");
   delay(1);
   Serial.println("Client disonnected");
