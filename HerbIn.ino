@@ -32,14 +32,14 @@ WiFiServer server(80);
 /* Functions to turn on/off pump */
 void turnOnPump1() {
   digitalWrite(IN1, LOW);
-  delay(50);
+  delay(500);
   turnOffPump1();
 
 }
 
 void turnOnPump2() {
   digitalWrite(IN2, LOW);
-  delay(50);
+  delay(500);
   turnOffPump2();
 
 }
